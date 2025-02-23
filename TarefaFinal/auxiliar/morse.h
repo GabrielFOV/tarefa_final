@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Equivalência das fontes para codigo morse.  
 char morse[69][6] =
 {
     "-----",//0

@@ -39,6 +39,13 @@
     "files.associations": {
         "ws2818b.pio.h": "c",
         "stdlib.h": "c",
-        "adc.h": "c"
+        "adc.h": "c",
+        "pio.h": "c",
+        "fontes.h": "c",
+        "display.h": "c",
+        "locale.h": "c",
+        "timer.h": "c",
+        "clocks.h": "c",
+        "pwm.h": "c"
     }
 }

@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-// Fontes para A-Z e 0-9. Os caracteres tem 8x8 pixels
+// Fontes para A-Z, a-z, 0-9 e ' ' a ?. Os caracteres tem 8x8 pixels
 
 
 static uint8_t font[] = {
