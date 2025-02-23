@@ -1,0 +1,7 @@
+[wokwi]
+version = 1
+firmware = 'build/TarefaFinal.uf2'
+elf = 'build/TarefaFinal.elf'
+
+[[uart]]
+baud = 115200
