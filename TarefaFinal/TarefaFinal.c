@@ -1,8 +1,8 @@
 //Codigo criado por Gabriel França Oliveira Viana (TIV370100619)
 // Referencias e documentação disponivel em: https://github.com/GabrielFOV/tarefa_final.git
 
-//Na linha 355 é possível definir se é retornado o codigo morse via uart
-//Na linha 533 é possível definir se é retornado o texto digitado via uart.
+//Na linha 337 é possível definir se é retornado o codigo morse via uart
+//Na linha 512 é possível definir se é retornado o texto digitado via uart.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,8 +32,8 @@
 #define ledB_pin 11// led verde GPIO11.
 #define ledA_pin 12// led azul GPIO12.
 #define ledC_pin 13// led vermelho GPIO13.
-#define VRX_PIN 27//Pino com conexão com o eixo horizontal do joystick. 
-#define VRY_PIN 26//Pino com conexão com o eixo vertical do joystick.  
+#define VRX_PIN 26//Pino com conexão com o eixo horizontal do joystick. 
+#define VRY_PIN 27//Pino com conexão com o eixo vertical do joystick.  
 #define SW_PIN 22////Pino com conexão com o botão do joystick.  
 #define tempo 2500
 
@@ -79,10 +79,6 @@ char caracter2[5][5]=// matriz correspondente do display led.
 //Prototipação da função de interrupção.
 static void gpio_irq_handlerA(uint gpio, uint32_t events);
 
-//Definição de PWM. 
-#define WRAP 20000 // Para 50Hz (20ms) frequência PWM.
-#define Divisor  125  // Divisor de clock ajustado para servo.
-
 //Definição de pixel RGB.
 struct pixel_t {
   uint8_t G, R, B; // Três valores de 8-bits compõem um pixel.
@@ -96,22 +92,6 @@ npLED_t leds[LED_COUNT];
 //Variáveis para uso da máquina PIO.
 PIO np_pio;
 uint sm;
-
-//Função de inicialização para o PWM. 
-void pwm_setup()
-{
-    gpio_set_function(ledC_pin, GPIO_FUNC_PWM); // Configura GPIO 13 como PWM.
-    uint slice_red = pwm_gpio_to_slice_num(ledC_pin); // Obtém o slice do PWM.
-    pwm_set_clkdiv(slice_red, Divisor); // Define divisor de clock.
-    pwm_set_wrap(slice_red, WRAP);   // Define período do PWM (50Hz).
-    pwm_set_enabled(slice_red, true);       // Habilita o PWM.
-
-    gpio_set_function(ledB_pin, GPIO_FUNC_PWM); // Configura GPIO 11 como PWM.
-    uint slice_blue = pwm_gpio_to_slice_num(ledB_pin); // Obtém o slice do PWM.
-    pwm_set_clkdiv(slice_blue, Divisor); // Define divisor de clock.
-    pwm_set_wrap(slice_blue, WRAP);   // Define período do PWM (50Hz).
-    pwm_set_enabled(slice_blue, true);       // Habilita o PWM.
-}
 
 //Inicializa a máquina PIO para controle da matriz de LEDs.
 void npInit(uint pin) 
@@ -354,7 +334,7 @@ void tradutor(char text[80])//Converte a string de caracteres em uma string em m
   gpio_put(ledA_pin,0);
   gpio_put(ledB_pin,0);
   gpio_put(ledC_pin,0);
-  //printf("%s\n",traducao);//habilita a impressão do codigo morse equivalente na uART.
+  printf("%s\n",traducao);//habilita a impressão do codigo morse equivalente na uART.
   traducao[0]='\0';// "Limpa o armazenamento" da string em morse.
   flag_timer = true;//Garante o retorno do loop principal.
 }
@@ -373,11 +353,6 @@ int main()
   //Configura os pinos GPIO para a UART.
   gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART); // Configura o pino 0 para TX
   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART); // Configura o pino 1 para RX
-
-  //Mensagem inicial.
-  /*const char *init_message = "UART Demo - RP2\r\n"
-                              "Digite algo e veja o eco:\r\n";
-  uart_puts(UART_ID, init_message);*/
 
   //Inicializa o adc.
   adc_init();
@@ -433,6 +408,7 @@ int main()
   while (true)
   {
     matrizled(painel);//Ativa a matriz led no painel de leds
+    
     if(flag_timer)//Flag para a continuidade do loop.
     {
     //Configura o ADC para os eixos X e Y respectivamente.
@@ -441,17 +417,17 @@ int main()
     adc_select_input(1); 
     uint16_t vry_value = adc_read(); 
     bool sw_value = gpio_get(SW_PIN) == 0;//Identifica o acionamento do botão do joystick. 
-
+    sleep_ms(500);
     ssd1306_fill(&ssd, !cor); //Limpa o display.
     ssd1306_rect(&ssd, 3, 3, 120, 56, cor, !cor, 1); //Desenha a borda.
     ssd1306_send_data(&ssd); //Atualiza o display.
    if(l>=0||l<=4)//Identifica o movimento do joystick na horizontal.
    {
-    if(vrx_value==0)
+    if(vrx_value<=20)
     {
       l--;
     } 
-    if(vrx_value==4095)
+    if(vrx_value>=4080)
     {
       l++;
     }
@@ -460,13 +436,13 @@ int main()
    if(l<0){l=4;}//condiciona a reconhecer a posição do joystick como o oposto apos passar de certo ponto.
    if(k>=0||k<=4)//Identifica o movimento do joystick na vertical.
    {
-    if(vry_value==0)
-    {
-      k--;
-    } 
-    if(vry_value==4095)
+    if(vry_value<=20)
     {
       k++;
+    } 
+    if(vry_value>=4060)
+    {
+      k--;
     }
    }
    if(k>4){k=0;painel=(!painel);}//condiciona a reconhecer a posição do joystick como o oposto apos passar de certo ponto e muda a matriz led.
@@ -504,13 +480,14 @@ void gpio_irq_handlerA(uint gpio, uint32_t events)
     if (gpio == button_A && (current_time - last_time > 200000)) //200 ms de debouncing.
     {//Quando pressionado o botão A, o ultimo caracter inserido é apagado. 
         last_time = current_time; //Atualiza o tempo do último evento.
-        t--;//decrementa a posição do caracter no display
+        t--;  //decrementa a posição do caracter no display
+        if(t<0)//impede t de ficar negativo e estourar o display.
+        {t=0;}
         texto[t]=' ';
     }
     if (gpio == button_B && (current_time - last_time > 200000)) //200 ms de debouncing.
     {//Quando pressionado o botão B a mensagem é enviada para ser convertida em codigo morse.
         last_time = current_time; //Atualiza o tempo do último evento.
-      
        //modifica a tela apresentada no display. 
        ssd1306_fill(&ssd, !cor); //Limpa o display.
        ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor, 1); //Desenha um retângulo.
@@ -532,6 +509,6 @@ void gpio_irq_handlerA(uint gpio, uint32_t events)
     {//Quando pressionado o botão do joystick o caracter correspondente é adicionado a string. 
       last_time = current_time; //Atualiza o tempo do último evento.
        escrever(l,k);//Chama a função para obter o caracter equivalente.
-       //printf("texto %s\n",texto);//Habilita a impressão do texto inserido na uart. 
+       printf("texto %s\n",texto);//Habilita a impressão do texto inserido na uart. 
     }
 }
